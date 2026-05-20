@@ -7,13 +7,17 @@
       :class="{ 'ring-2 ring-accent': isOpen }"
     >
       <img
-        v-if="userAvatar"
-        :src="userAvatar"
+        v-if="authStore.user?.avatar"
+        :src="authStore.user.avatar"
         alt="avatar"
         class="w-full h-full object-cover"
       />
       <span v-else>
-        {{ user?.displayName?.charAt(0) || user?.email?.charAt(0) || "?" }}
+        {{
+          authStore.user?.displayName?.charAt(0) ||
+          authStore.user?.email?.charAt(0) ||
+          "?"
+        }}
       </span>
     </button>
 
@@ -28,50 +32,43 @@
       >
         <button
           @click.stop="openSection('profile')"
-          class="rounded-lg w-72 flex transition-colors"
+          class="rounded-lg w-full flex transition-colors"
         >
           <div
             class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold overflow-hidden"
           >
             <img
-              v-if="userAvatar"
-              :src="userAvatar"
-              alt="avatar"
+              v-if="authStore.user?.avatar"
+              :src="authStore.user.avatar"
               class="w-full h-full object-cover"
             />
-            <span v-else>
-              {{
-                user?.displayName?.charAt(0) || user?.email?.charAt(0) || "?"
-              }}
-            </span>
+            <span v-else>{{
+              authStore.user?.displayName?.charAt(0) ||
+              authStore.user?.email?.charAt(0) ||
+              "?"
+            }}</span>
           </div>
 
-          <div class="flex-1 min-w-0 relative text-left left-3">
+          <div class="flex-1 text-left ml-3">
             <p class="font-bold truncate">
-              {{ user?.displayName || "Пользователь" }}
+              {{ authStore.user?.displayName || "Пользователь" }}
             </p>
-            <p class="text-sm truncate">{{ user?.email }}</p>
+            <p class="text-sm truncate">{{ authStore.user?.email }}</p>
           </div>
 
-          <div class="w-12">
-            <span class="relative top-1 left-2 text-xl">✎</span>
-          </div>
+          <div class="w-8 text-xl">✎</div>
         </button>
       </div>
 
-      <!-- Статистика -->
+      <!-- Дневная цель -->
       <div class="p-4 border-b border-border dark:border-border-dark">
         <div class="flex justify-between items-center">
-          <span class="">Цель на день:</span>
-
+          <span>Цель на день:</span>
           <button
             @click.stop="openSection('goal')"
-            class="rounded-lg flex items-center gap-3 transition-colors"
+            class="font-bold text-accent"
           >
-            <span
-              class="font-bold relative right-1 text-accent dark:text-accent"
-              >{{ dailyGoal || 0 }} стр.</span
-            >
+            {{ dailyGoal || 0 }} стр.
           </button>
         </div>
       </div>
@@ -81,8 +78,8 @@
         <p class="mb-3">Оформление:</p>
         <div class="grid grid-cols-3 gap-2">
           <button
-            @click.stop="setTheme('light')"
-            class="flex flex-col items-center p-2 rounded-lg transition-colors"
+            @click="setTheme('light')"
+            class="flex flex-col items-center p-2 rounded-lg"
             :class="
               colorMode === 'light'
                 ? 'bg-accent/10 ring-2 ring-accent/50'
@@ -94,8 +91,8 @@
           </button>
 
           <button
-            @click.stop="setTheme('dark')"
-            class="flex flex-col items-center p-2 rounded-lg transition-colors"
+            @click="setTheme('dark')"
+            class="flex flex-col items-center p-2 rounded-lg"
             :class="
               colorMode === 'dark'
                 ? 'bg-accent/10 ring-2 ring-accent/50'
@@ -107,8 +104,8 @@
           </button>
 
           <button
-            @click.stop="setTheme('auto')"
-            class="flex flex-col items-center p-2 rounded-lg transition-colors"
+            @click="setTheme('auto')"
+            class="flex flex-col items-center p-2 rounded-lg"
             :class="
               colorMode === 'auto'
                 ? 'bg-accent/10 ring-2 ring-accent/50'
@@ -121,29 +118,29 @@
         </div>
       </div>
 
-      <!-- Меню действий -->
+      <!-- Сменить пароль -->
       <div class="p-2 border-b border-border dark:border-border-dark">
         <button
           @click.stop="openSection('password')"
-          class="w-full px-4 py-2 text-left hover:bg-border/50 dark:hover:bg-border-dark/40 rounded-lg flex items-center gap-3 transition-colors"
+          class="w-full px-4 py-2 text-left hover:bg-border/50 dark:hover:bg-border-dark/40 rounded-lg flex items-center gap-3"
         >
           <span class="flex-1 text-base">Сменить пароль</span>
         </button>
       </div>
 
+      <!-- Выход и удаление аккаунта -->
       <div class="p-2">
         <button
-          @click.stop="handleLogout"
-          class="w-full px-4 py-1 text-left hover:bg-border/50 dark:hover:bg-border-dark/40 rounded-lg flex items-center gap-3 text-red-600 dark:text-red-400 transition-colors"
+          @click="handleLogout"
+          class="w-full px-4 py-2 text-left hover:bg-border/50 dark:hover:bg-border-dark/40 rounded-lg text-red-600 dark:text-red-400"
         >
-          <span class="flex-1 text-base">Выйти</span>
+          Выйти
         </button>
-
         <button
-          @click.stop="confirmDelete"
-          class="w-full px-4 py-1 text-left hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-3 text-red-600 dark:text-red-400 transition-colors"
+          @click="confirmDelete"
+          class="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400"
         >
-          <span class="flex-1 text-base">Удалить аккаунт</span>
+          Удалить аккаунт
         </button>
       </div>
     </div>
@@ -153,7 +150,6 @@
       <div
         v-if="activeSection"
         class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4"
-        @click.self="closeSection"
       >
         <div
           class="bg-white dark:bg-bg-secondary-dark w-full max-w-md rounded-2xl max-h-[90vh] flex flex-col"
@@ -180,9 +176,9 @@
                   :avatar-preview="avatarPreview"
                   :avatar-file="avatarFile"
                   :original-image="originalAvatar"
-                  :user-id="user?.uid"
+                  :user-id="authStore.user?.id"
                   :display-name="editDisplayName"
-                  :email="user?.email"
+                  :email="authStore.user?.email"
                   @update:avatar-preview="handleAvatarPreviewUpdate"
                   @update:avatar-file="avatarFile = $event"
                   @update:original-image="originalAvatar = $event"
@@ -208,9 +204,9 @@
               <div class="space-y-2">
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >Дневная цель (страниц)</label
                 >
-                  Дневная цель (страниц)
-                </label>
+
                 <input
                   v-model.number="editDailyGoal"
                   type="number"
@@ -231,11 +227,10 @@
                   v-model="passwordData.current"
                   type="password"
                   autocomplete="off"
-                  readonly
-                  onfocus="this.removeAttribute('readonly')"
                   class="w-full px-4 py-2 dark:bg-border-dark/40 border border-border dark:border-border-dark rounded-lg dark:text-white"
                 />
               </div>
+
               <div class="space-y-2">
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -247,6 +242,7 @@
                   class="w-full px-4 py-2 dark:bg-border-dark/40 border border-border dark:border-border-dark rounded-lg dark:text-white"
                 />
               </div>
+
               <div class="space-y-2">
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -260,7 +256,7 @@
               </div>
             </div>
 
-            <!-- Сообщение об ошибке/успехе -->
+            <!-- Сообщения -->
             <div
               v-if="sectionError"
               class="mt-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm"
@@ -281,20 +277,19 @@
           >
             <button
               @click="closeSection"
-              class="flex-1 px-4 py-2 dark:bg-border-dark/40 text-black dark:text-white rounded-lg border border-border dark:border-border-dark hover:bg-border-dark/20 dark:hover:bg-border-dark transition-colors"
+              class="flex-1 px-4 py-2 dark:bg-border-dark/40 text-black dark:text-white rounded-lg border border-border dark:border-border-dark hover:bg-border-dark/20 dark:hover:bg-border-dark"
             >
               Отмена
             </button>
             <button
               @click="saveSection"
               :disabled="sectionLoading"
-              class="flex-1 px-4 py-2 bg-accent/60 hover:bg-accent/80 text-black dark:text-white rounded-lg disabled:opacity-50 transition-colors"
+              class="flex-1 px-4 py-2 bg-accent/60 hover:bg-accent/80 text-black dark:text-white rounded-lg disabled:opacity-50"
             >
               <span v-if="!sectionLoading">Сохранить</span>
-              <span v-else class="flex items-center justify-center">
-                <span class="animate-spin mr-2">⌛</span>
-                Сохранение...
-              </span>
+              <span v-else class="flex items-center justify-center"
+                ><span class="animate-spin mr-2">⌛</span> Сохранение...</span
+              >
             </button>
           </div>
         </div>
@@ -307,64 +302,36 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useColorMode } from "@vueuse/core";
-import { auth } from "../firebase/config";
-import {
-  updateProfile,
-  updatePassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  deleteUser,
-  signOut,
-} from "firebase/auth";
-import { useUserStore } from "../stores/user";
-import { usersDB } from "../db/index";
+import { useAuthStore } from "../stores/auth";
 import AvatarUploader from "./AvatarUploader.vue";
 
 const router = useRouter();
-const userStore = useUserStore();
-const user = computed(() => auth.currentUser);
-
-// Тема
+const authStore = useAuthStore();
 const colorMode = useColorMode({
   emitAuto: true,
-  modes: {
-    light: "light",
-    dark: "dark",
-    auto: "auto",
-  },
+  modes: { light: "light", dark: "dark", auto: "auto" },
 });
 
-// Состояние меню
+// UI состояние
 const isOpen = ref(false);
 const activeSection = ref(null);
 const menuContainer = ref(null);
+const sectionLoading = ref(false);
+const sectionError = ref("");
+const sectionSuccess = ref("");
 
-// Данные для редактирования
+// Данные форм
 const editDisplayName = ref("");
 const avatarPreview = ref(null);
 const avatarFile = ref(null);
 const originalAvatar = ref(null);
 const editDailyGoal = ref(50);
-
-const passwordData = ref({
-  current: "",
-  new: "",
-  confirm: "",
-});
-
-// Состояния загрузки
-const sectionLoading = ref(false);
-const sectionError = ref("");
-const sectionSuccess = ref("");
-
-// Цель
-const dailyGoal = ref(50);
-
-// Аватар пользователя
-const userAvatar = ref(null);
+const passwordData = ref({ current: "", new: "", confirm: "" });
 const hasAvatarChanged = ref(false);
 
-// Заголовок модалки
+// Вычисляемые
+const dailyGoal = computed(() => authStore.user?.dailyGoal || 50);
+
 const modalTitle = computed(() => {
   switch (activeSection.value) {
     case "profile":
@@ -378,6 +345,18 @@ const modalTitle = computed(() => {
   }
 });
 
+// Загрузка данных пользователя в форму
+const loadUserData = () => {
+  if (authStore.user) {
+    editDisplayName.value = authStore.user.displayName || "";
+    avatarPreview.value = authStore.user.avatar || null;
+    originalAvatar.value = authStore.user.originalAvatar || null;
+    editDailyGoal.value = authStore.user.dailyGoal || 50;
+  }
+};
+
+watch(() => authStore.user, loadUserData, { immediate: true });
+
 // Обработчики AvatarUploader
 const handleAvatarPreviewUpdate = (newPreview) => {
   avatarPreview.value = newPreview;
@@ -388,126 +367,25 @@ const handleAvatarRemove = () => {
   avatarPreview.value = null;
   avatarFile.value = null;
   originalAvatar.value = null;
-  userAvatar.value = null;
   hasAvatarChanged.value = true;
 };
 
-// Обновляем загрузку пользовательских данных
-const loadUserData = async () => {
-  if (!user.value?.uid) return;
-
-  try {
-    // Загружаем из userStore или IndexedDB
-    let userData = userStore.userData;
-
-    if (!userData) {
-      userData = await usersDB.get(user.value.uid);
-    }
-
-    if (userData) {
-      // Аватар
-      if (userData.avatar) {
-        userAvatar.value = userData.avatar;
-        avatarPreview.value = userData.avatar;
-      }
-
-      // Оригинальный аватар (для редактирования)
-      if (userData.originalAvatar) {
-        originalAvatar.value = userData.originalAvatar;
-      }
-
-      // Цель
-      if (userData.dailyGoal) {
-        dailyGoal.value = userData.dailyGoal;
-        editDailyGoal.value = userData.dailyGoal;
-      }
-
-      // Имя
-      if (userData.displayName) {
-        editDisplayName.value = userData.displayName;
-      } else if (user.value?.displayName) {
-        editDisplayName.value = user.value.displayName;
-      }
-    } else {
-      // Если нет данных, берем из Firebase Auth
-      if (user.value?.displayName) {
-        editDisplayName.value = user.value.displayName;
-      }
-      if (user.value?.photoURL) {
-        userAvatar.value = user.value.photoURL;
-        avatarPreview.value = user.value.photoURL;
-      }
-    }
-  } catch (error) {
-    console.error("Ошибка загрузки пользователя:", error);
-  }
-};
-
-// Сохранение данных пользователя в IndexedDB
-const saveUserToDB = async (updates) => {
-  if (!user.value?.uid) return;
-
-  try {
-    const existing = await usersDB.get(user.value.uid);
-    if (existing) {
-      await usersDB.update(user.value.uid, {
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      });
-    } else {
-      await usersDB.add({
-        userId: user.value.uid,
-        email: user.value.email,
-        ...updates,
-        createdAt: new Date().toISOString(),
-      });
-    }
-    console.log("Пользователь сохранен в IndexedDB");
-  } catch (error) {
-    console.error("Ошибка сохранения пользователя в IndexedDB:", error);
-    throw error;
-  }
-};
-
-// Обработчик клика вне меню
-const handleClickOutside = (event) => {
-  if (menuContainer.value && !menuContainer.value.contains(event.target)) {
-    isOpen.value = false;
-  }
-};
-
-// Методы для темы
-const setTheme = (theme) => {
-  colorMode.value = theme;
-  isOpen.value = false;
-};
-
-// Методы меню
-const toggleMenu = () => {
-  isOpen.value = !isOpen.value;
-};
-
+// Открытие секции
 const openSection = (section) => {
   activeSection.value = section;
   isOpen.value = false;
   hasAvatarChanged.value = false;
-
+  sectionError.value = "";
+  sectionSuccess.value = "";
   if (section === "profile") {
-    editDisplayName.value = user.value?.displayName || "";
-    // Загружаем текущий аватар для отображения в редакторе
-    if (userAvatar.value) {
-      avatarPreview.value = userAvatar.value;
-    }
-    originalAvatar.value = null;
-    avatarFile.value = null;
+    editDisplayName.value = authStore.user?.displayName || "";
+    avatarPreview.value = authStore.user?.avatar || null;
+    originalAvatar.value = authStore.user?.originalAvatar || null;
   } else if (section === "goal") {
-    editDailyGoal.value = dailyGoal.value;
+    editDailyGoal.value = authStore.user?.dailyGoal || 50;
   } else if (section === "password") {
     passwordData.value = { current: "", new: "", confirm: "" };
   }
-
-  sectionError.value = "";
-  sectionSuccess.value = "";
 };
 
 const closeSection = () => {
@@ -515,145 +393,97 @@ const closeSection = () => {
   hasAvatarChanged.value = false;
 };
 
+// Сохранение
 const saveSection = async () => {
   sectionLoading.value = true;
   sectionError.value = "";
   sectionSuccess.value = "";
-
   try {
     switch (activeSection.value) {
       case "profile": {
-        // Обновляем имя в Firebase Auth если изменилось
-        if (editDisplayName.value !== user.value?.displayName) {
-          await updateProfile(user.value, {
-            displayName: editDisplayName.value,
-          });
+        if (editDisplayName.value !== authStore.user?.displayName) {
+          await authStore.updateProfile({ displayName: editDisplayName.value });
         }
-
-        // Если аватар был изменен
         if (hasAvatarChanged.value) {
           if (avatarPreview.value) {
-            // Сохраняем новый аватар
-            await userStore.updateAvatar(
+            await authStore.updateAvatar(
               avatarPreview.value,
               originalAvatar.value,
             );
-            userAvatar.value = avatarPreview.value;
           } else {
-            // Удаляем аватар
-            await userStore.updateAvatar(null, null);
-            userAvatar.value = null;
+            await authStore.updateAvatar(null, null);
           }
-        } else if (editDisplayName.value !== user.value?.displayName) {
-          // Если изменилось только имя
-          await userStore.updateProfile({ displayName: editDisplayName.value });
         }
-
         sectionSuccess.value = "Профиль обновлён";
         break;
       }
-
-      case "goal":
-        dailyGoal.value = editDailyGoal.value;
-        localStorage.setItem("dailyGoal", editDailyGoal.value);
-        userStore.setDailyGoal(editDailyGoal.value);
-        await saveUserToDB({ dailyGoal: editDailyGoal.value });
+      case "goal": {
+        await authStore.setDailyGoal(editDailyGoal.value);
         sectionSuccess.value = "Цель обновлена";
         break;
-
-      case "password":
+      }
+      case "password": {
         if (passwordData.value.new !== passwordData.value.confirm) {
           throw new Error("Пароли не совпадают");
         }
         if (passwordData.value.new.length < 6) {
           throw new Error("Пароль должен быть минимум 6 символов");
         }
-
-        const credential = EmailAuthProvider.credential(
-          user.value.email,
+        await authStore.changePassword(
           passwordData.value.current,
+          passwordData.value.new,
         );
-        await reauthenticateWithCredential(user.value, credential);
-        await updatePassword(user.value, passwordData.value.new);
-        sectionSuccess.value = "Пароль успешно изменён";
+        sectionSuccess.value = "Пароль изменён";
         passwordData.value = { current: "", new: "", confirm: "" };
         break;
+      }
     }
-
-    setTimeout(() => {
-      closeSection();
-    }, 1000);
+    setTimeout(() => closeSection(), 1000);
   } catch (error) {
     console.error("Save error:", error);
-    sectionError.value = error.message || "Произошла ошибка";
+    sectionError.value = error.message || "Ошибка сохранения";
   } finally {
     sectionLoading.value = false;
   }
 };
 
+// Выход
 const handleLogout = async () => {
-  try {
-    await signOut(auth);
-    router.push("/auth");
-  } catch (error) {
-    console.error("Logout error:", error);
-  }
+  authStore.logout();
 };
 
+// Удаление аккаунта
 const confirmDelete = () => {
   if (
     confirm(
       "Вы уверены? Это действие нельзя отменить. Все ваши данные будут удалены.",
     )
   ) {
-    deleteAccount();
+    authStore
+      .deleteAccount()
+      .catch((err) => alert("Ошибка при удалении аккаунта"));
   }
 };
 
-const deleteAccount = async () => {
-  try {
-    // Удаляем данные пользователя из IndexedDB
-    if (user.value?.uid) {
-      await usersDB.delete(user.value.uid);
-    }
-    await deleteUser(user.value);
-    router.push("/auth");
-  } catch (error) {
-    console.error("Delete account error:", error);
-    alert("Ошибка при удалении аккаунта");
-  }
+// Тема
+const setTheme = (theme) => {
+  colorMode.value = theme;
+  isOpen.value = false;
 };
 
-// Следим за изменениями в userStore
-watch(
-  () => userStore.userData,
-  (newData) => {
-    if (newData) {
-      if (newData.avatar && newData.avatar !== userAvatar.value) {
-        userAvatar.value = newData.avatar;
-        avatarPreview.value = newData.avatar;
-      }
-      if (
-        newData.displayName &&
-        newData.displayName !== editDisplayName.value
-      ) {
-        editDisplayName.value = newData.displayName;
-      }
-      if (newData.dailyGoal && newData.dailyGoal !== dailyGoal.value) {
-        dailyGoal.value = newData.dailyGoal;
-        editDailyGoal.value = newData.dailyGoal;
-      }
-    }
-  },
-  { immediate: true, deep: true },
-);
+// Закрытие меню по клику вне
+const handleClickOutside = (event) => {
+  if (menuContainer.value && !menuContainer.value.contains(event.target)) {
+    isOpen.value = false;
+  }
+};
+const toggleMenu = () => {
+  isOpen.value = !isOpen.value;
+};
 
-// Добавляем слушатель событий
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
-  loadUserData();
 });
-
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
 });

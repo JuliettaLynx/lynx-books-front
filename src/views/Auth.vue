@@ -1,9 +1,9 @@
 <template>
   <div
-    class="min-h-screen bg-white transition-colors duration-200 dark:bg-bg-primary-dark flex items-center justify-center p-4"
+    class="min-h-screen bg-white dark:bg-bg-primary-dark flex items-center justify-center p-4 transition-colors duration-200"
   >
     <div class="w-full max-w-md">
-      <!-- Шапка с заголовком и темой -->
+      <!-- Шапка -->
       <div
         class="bg-white dark:bg-bg-secondary-dark text-black dark:text-white rounded-t-2xl p-4 border-b border-border dark:border-border-dark"
       >
@@ -15,18 +15,16 @@
         </div>
       </div>
 
-      <!-- Основная форма -->
+      <!-- Форма -->
       <div
         class="bg-white dark:bg-bg-secondary-dark rounded-b-2xl p-6 shadow-lg"
       >
         <form @submit.prevent="handleSubmit" class="space-y-4">
-          <!-- Имя (только при регистрации) -->
           <div v-if="!isLoginMode" class="space-y-1">
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Имя</label
             >
-              Имя
-            </label>
             <input
               v-model="displayName"
               type="text"
@@ -35,50 +33,48 @@
             />
           </div>
 
-          <!-- Email -->
           <div class="space-y-1">
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Email</label
             >
-              Email
-            </label>
             <input
               v-model="email"
+              name="email"
               type="email"
               required
               placeholder="your@email.com"
+              autocomplete="email webauthn"
               class="w-full px-4 py-2 bg-white dark:bg-border-dark/40 border border-border dark:border-border-dark rounded-lg dark:text-white transition-colors duration-200"
             />
           </div>
 
-          <!-- Пароль -->
           <div class="space-y-1">
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Пароль</label
             >
-              Пароль
-            </label>
             <div class="relative">
               <input
                 :type="showPassword ? 'text' : 'password'"
                 v-model="password"
                 required
+                autocomplete="new-password"
                 :placeholder="
                   isLoginMode ? 'Введите пароль' : 'Минимум 6 символов'
                 "
-                class="w-full px-4 py-2 bg-white dark:bg-border-dark/40 border border-border dark:border-border-dark rounded-lg dark:text-white transition-colors duration-200 pr-10"
+                class="w-full px-4 py-2 bg-white dark:bg-border-dark/40 border border-border dark:border-border-dark rounded-lg dark:text-white pr-10"
               />
               <button
                 type="button"
                 @click="showPassword = !showPassword"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 z-50"
               >
-                <span class="text-lg">{{ showPassword ? "👁️" : "👁️‍🗨️" }}</span>
+                {{ showPassword ? "👁️" : "👁️‍🗨️" }}
               </button>
             </div>
           </div>
 
-          <!-- Сообщение об ошибке -->
           <div
             v-if="error"
             class="p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"
@@ -86,22 +82,19 @@
             {{ error }}
           </div>
 
-          <!-- Кнопка входа/регистрации -->
           <button
             type="submit"
             :disabled="loading"
-            class="w-full py-3 bg-accent/80 hover:bg-accent/60 font-medium text-black dark:text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full py-3 bg-accent/80 hover:bg-accent/60 font-medium text-black dark:text-white rounded-lg transition-colors disabled:opacity-50"
           >
-            <span v-if="!loading">
-              {{ isLoginMode ? "Войти" : "Зарегистрироваться" }}
-            </span>
-            <span v-else class="flex items-center justify-center">
-              <span class="animate-spin mr-2">⌛</span>
-              Загрузка...
-            </span>
+            <span v-if="!loading">{{
+              isLoginMode ? "Войти" : "Зарегистрироваться"
+            }}</span>
+            <span v-else class="flex items-center justify-center"
+              ><span class="animate-spin mr-2">⌛</span> Загрузка...</span
+            >
           </button>
 
-          <!-- Разделитель -->
           <div class="relative my-6">
             <div class="absolute inset-0 flex items-center">
               <div
@@ -111,24 +104,21 @@
             <div class="relative flex justify-center text-sm">
               <span
                 class="px-2 bg-white dark:bg-border-dark rounded-lg text-gray-500 dark:text-gray-400"
+                >или</span
               >
-                или
-              </span>
             </div>
           </div>
 
-          <!-- Вход через Google -->
           <button
             type="button"
             @click="handleGoogleLogin"
             :disabled="loading"
-            class="w-full py-3 bg-white dark:bg-border-dark/40 border border-border dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            class="w-full py-3 bg-white dark:bg-border-dark/40 border border-border dark:border-border-dark hover:bg-gray-50 dark:hover:bg-border-dark text-gray-700 dark:text-gray-200 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <img
               src="https://www.google.com/favicon.ico"
               alt="Google"
               class="w-5 h-5"
-              onerror="this.src = 'data:image/svg+xml,...'"
             />
             <span>Продолжить с Google</span>
           </button>
@@ -152,126 +142,42 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  updateProfile,
-} from "firebase/auth";
-import { auth } from "../firebase/config";
+import { useAuthStore } from "../stores/auth";
 import ThemeToggle from "../components/ThemeToggle.vue";
 
-const router = useRouter();
-
-// Состояние формы
+const authStore = useAuthStore();
 const email = ref("");
 const password = ref("");
 const displayName = ref("");
 const error = ref("");
-const loading = ref(false);
-const showPassword = ref(false);
 const isLoginMode = ref(true);
+const showPassword = ref(false);
+const loading = ref(false);
 
-// Переключение между входом и регистрацией
+const handleSubmit = async () => {
+  error.value = "";
+  loading.value = true;
+  try {
+    if (isLoginMode.value) {
+      await authStore.login(email.value, password.value);
+    } else {
+      await authStore.register(email.value, password.value, displayName.value);
+    }
+  } catch (err) {
+    error.value = "Неверный email или пароль";
+    alert(error.value);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleGoogleLogin = () => {
+  // Позже реализуем
+  window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+};
+
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value;
   error.value = "";
-  password.value = ""; // Очищаем пароль при смене режима
-};
-
-// Обработка отправки формы
-const handleSubmit = async () => {
-  loading.value = true;
-  error.value = "";
-
-  try {
-    if (isLoginMode.value) {
-      // Вход
-      await signInWithEmailAndPassword(auth, email.value, password.value);
-    } else {
-      // Регистрация
-      if (password.value.length < 6) {
-        throw new Error("Пароль должен быть минимум 6 символов");
-      }
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email.value,
-        password.value,
-      );
-
-      // Добавляем имя пользователя если указано
-      if (displayName.value) {
-        await updateProfile(userCredential.user, {
-          displayName: displayName.value,
-        });
-      }
-    }
-
-    // Успешная авторизация - редирект на главную
-    router.push("/library");
-  } catch (err) {
-    console.error("Auth error:", err);
-
-    const errorMessages = {
-      // Email/Password errors
-      "auth/user-not-found": "Пользователь с таким email не найден",
-      "auth/wrong-password": "Неверный пароль",
-      "auth/email-already-in-use": "Этот email уже зарегистрирован",
-      "auth/weak-password": "Пароль должен содержать минимум 6 символов",
-      "auth/invalid-email": "Некорректный формат email",
-      "auth/invalid-credential": "Неверные учетные данные",
-      "auth/too-many-requests": "Слишком много попыток. Попробуйте позже",
-
-      // User disabled
-      "auth/user-disabled": "Аккаунт отключен",
-
-      // Network errors
-      "auth/network-request-failed": "Ошибка сети. Проверьте подключение",
-
-      // Password reset
-      "auth/requires-recent-login": "Требуется повторный вход",
-
-      // Google auth errors
-      "auth/popup-closed-by-user": "Вход через Google отменен",
-      "auth/popup-blocked": "Всплывающее окно заблокировано браузером",
-      "auth/cancelled-popup-request": "Запрос входа отменен",
-
-      // Session expired
-      "auth/session-expired": "Сессия истекла. Войдите снова",
-
-      // Default
-      default: "Произошла ошибка. Попробуйте снова",
-    };
-
-    // Проверяем, есть ли код ошибки Firebase
-    if (err.code && errorMessages[err.code]) {
-      error.value = errorMessages[err.code];
-    } else {
-      // Если это не Firebase ошибка или неизвестный код
-      error.value = err.message || errorMessages.default;
-    }
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Вход через Google
-const handleGoogleLogin = async () => {
-  loading.value = true;
-  error.value = "";
-
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-    router.push("/library");
-  } catch (err) {
-    console.error("Google error:", err);
-    error.value = err.message || "Ошибка входа через Google";
-  } finally {
-    loading.value = false;
-  }
 };
 </script>

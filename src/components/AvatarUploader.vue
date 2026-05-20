@@ -38,7 +38,6 @@
         <div
           class="bg-white dark:bg-bg-secondary-dark rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
         >
-          <!-- Заголовок -->
           <div
             class="flex items-center justify-between p-4 border-b border-border dark:border-border-dark"
           >
@@ -103,20 +102,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { Cropper } from "vue-advanced-cropper";
 import "vue-advanced-cropper/dist/style.css";
-import { usersDB } from ".././db/index";
 
-// Пропсы и эмиты
 const props = defineProps({
   avatarPreview: String,
   avatarFile: [String, File],
   originalImage: String,
-  userId: {
-    type: [Number, String],
-    default: null,
-  },
+  userId: { type: [Number, String], default: null },
   displayName: String,
   email: String,
 });
@@ -137,10 +131,10 @@ const initials = computed(() => {
 
 // Состояния
 const showCropper = ref(false);
-const originalImageSrc = ref(null);
+const originalImageSrc = ref(
+  props.originalImage || props.avatarPreview || null,
+);
 const cropperRef = ref(null);
-const currentCoordinates = ref(null);
-const isLoading = ref(false);
 
 // Конфиги для cropper
 const stencilProps = {
@@ -158,100 +152,19 @@ const resizeImageConfig = {
   wheel: true,
 };
 
-// Константы
-const MAX_SIZE = 1 * 1024 * 1024; // 1 МБ для аватара
-const TARGET_SIZE = { width: 200, height: 200 }; // 200x200 для аватара
+const MAX_SIZE = 1 * 1024 * 1024;
+const TARGET_SIZE = { width: 200, height: 200 };
 
-// Загрузка оригинала из IndexedDB
-const loadOriginalFromDB = async () => {
-  if (!props.userId) return;
-
-  isLoading.value = true;
-  try {
-    const user = await usersDB.get(props.userId);
-    if (user?.originalAvatar) {
-      originalImageSrc.value = user.originalAvatar;
-      emit("update:originalImage", user.originalAvatar);
-      console.log("Оригинал аватара загружен из IndexedDB");
-    }
-  } catch (error) {
-    console.error("Ошибка загрузки аватара из IndexedDB:", error);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Сохранение оригинала в IndexedDB
-const saveOriginalToDB = async (imageData) => {
-  if (!props.userId) return;
-
-  try {
-    const existing = await usersDB.get(props.userId);
-    if (existing) {
-      await usersDB.update(props.userId, {
-        originalAvatar: imageData,
-        updatedAt: new Date().toISOString(),
-      });
-    } else {
-      await usersDB.add({
-        userId: props.userId,
-        originalAvatar: imageData,
-        displayName: props.displayName || "",
-        email: props.email || "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    console.log("Оригинал аватара сохранен в IndexedDB");
-  } catch (error) {
-    console.error("Ошибка сохранения аватара в IndexedDB:", error);
-  }
-};
-
-// Удаление оригинала из IndexedDB
-const removeOriginalFromDB = async () => {
-  if (!props.userId) return;
-
-  try {
-    const existing = await usersDB.get(props.userId);
-    if (existing) {
-      await usersDB.update(props.userId, {
-        originalAvatar: null,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    console.log("Оригинал аватара удален из IndexedDB");
-  } catch (error) {
-    console.error("Ошибка удаления аватара из IndexedDB:", error);
-  }
-};
-
-// При монтировании загружаем сохраненный оригинал
-onMounted(() => {
-  loadOriginalFromDB();
-});
-
-// Следим за изменением userId
-watch(
-  () => props.userId,
-  () => {
-    loadOriginalFromDB();
-  },
-);
-
-// Валидация изображения
 const validateImage = (file, base64) => {
   if (file?.size > MAX_SIZE) {
-    alert("Изображение слишком большое. Максимальный размер 2 МБ");
+    alert("Изображение слишком большое. Максимальный размер 1 МБ");
     return false;
   }
-
   const sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
-  if (sizeInMB > 2) {
+  if (sizeInMB > 1) {
     alert("Изображение слишком большое после конвертации");
     return false;
   }
-
   return true;
 };
 
@@ -266,16 +179,10 @@ const uploadNewImage = () => {
     if (!file) return;
 
     const reader = new FileReader();
-
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       const imageData = event.target.result;
       if (!validateImage(file, imageData)) return;
-
       originalImageSrc.value = imageData;
-
-      // Сохраняем в IndexedDB
-      await saveOriginalToDB(imageData);
-
       showCropper.value = true;
     };
 
@@ -334,40 +241,20 @@ const applyCrop = async () => {
 };
 
 // Обработчики
-const handleCropChange = ({ coordinates }) => {
-  currentCoordinates.value = coordinates;
-};
-
-const handleCropperReady = () => {
-  console.log("Кроппер готов");
-};
-
+const handleCropChange = () => {};
+const handleCropperReady = () => {};
 const closeCropperModal = () => {
   showCropper.value = false;
-  currentCoordinates.value = null;
 };
 
-const handleRemove = async () => {
+const handleRemove = () => {
   emit("remove");
   emit("update:avatarPreview", null);
   emit("update:avatarFile", null);
   emit("update:originalImage", null);
 
   originalImageSrc.value = null;
-  currentCoordinates.value = null;
-
-  // Удаляем из IndexedDB
-  await removeOriginalFromDB();
 };
-
-// Вотчер для props.originalImage
-watch(
-  () => props.originalImage,
-  (val) => {
-    if (val) originalImageSrc.value = val;
-  },
-  { immediate: true },
-);
 </script>
 
 <style scoped>

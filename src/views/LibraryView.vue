@@ -50,13 +50,7 @@
       </div>
     </div>
 
-    <!-- Индикатор загрузки или ошибка -->
-    <!--
-    <div v-if="libraryStore.loading" class="p-4 text-center">
-      <div class="inline-block text-2xl animate-spin">⌛</div>
-      <p class="text-gray-500 dark:text-gray-400 mt-2">Загрузка...</p>
-    </div>
-    -->
+    <LoadingSpinner v-if="libraryStore.loading" />
 
     <div v-if="libraryStore.error" class="p-4 text-center">
       <p class="text-red-500 dark:text-red-400">
@@ -122,14 +116,15 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
-import { auth } from "../firebase/config";
 import { useDebounceFn } from "@vueuse/core";
 import { useLibraryStore } from "../stores/library";
+import SkeletonLoader from "vue3-skeleton-loader";
 import IconButton from "../components/IconButton.vue";
 import SearchInput from "../components/library/SearchInput.vue";
 import BookCard from "../components/library/BookCard.vue";
 import BookModal from "../components/library/BookModal.vue";
 import UserProfile from "../components/UserProfile.vue";
+import LoadingSpinner from "../components/LoadingSpinner.vue";
 
 const libraryStore = useLibraryStore();
 
@@ -143,10 +138,7 @@ const isModalOpen = ref(false);
 const editingBook = ref(null);
 
 onMounted(() => {
-  // Если пользователь вошел, а данные ещё не синхронизированы
-  if (auth.currentUser) {
-    libraryStore.initSync(auth.currentUser.uid);
-  }
+  libraryStore.loadBooks();
 });
 
 // Иконки для сортировки

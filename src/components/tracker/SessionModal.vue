@@ -304,10 +304,11 @@ const sessionStore = useSessionStore();
 const libraryStore = useLibraryStore();
 
 const loading = ref(false);
-const unreadBooks = ref([]);
 const isDropdownOpen = ref(false);
 const dropdownContainerRef = ref(null);
 const isClosing = ref(false);
+
+const unreadBooks = computed(() => libraryStore.getUnreadBooks());
 
 const isFromCalendar = computed(
   () => props.fromCalendar && !props.sessionToEdit?.id,
@@ -326,7 +327,7 @@ const colorOptions = [
 
 const form = reactive({
   bookId: "",
-  color: "#3B82F6",
+  color: "#FF0000",
   startDate: null,
   date: null,
   startPage: null,
@@ -462,21 +463,13 @@ const updateEndTime = (timeStr) => {
 };
 
 // ========== Загрузка данных ==========
-const loadUnreadBooks = async () => {
-  try {
-    unreadBooks.value = await libraryStore.getUnreadBooks();
-  } catch (error) {
-    console.error("Ошибка загрузки книг:", error);
-  }
-};
-
 const loadLastSession = () => {
   if (props.sessionToEdit?.id) return;
 
   const lastSession = sessionStore.loadLastSession();
   if (lastSession && lastSession.bookId) {
     form.bookId = lastSession.bookId;
-    form.color = lastSession.color || "#3B82F6";
+    form.color = lastSession.color || "#FF0000";
     autoFillStartPage(form.bookId);
   }
 };
@@ -488,7 +481,7 @@ const resetForm = () => {
 
     if (props.sessionToEdit) {
       form.bookId = props.sessionToEdit.bookId;
-      form.color = props.sessionToEdit.color || "#3B82F6";
+      form.color = props.sessionToEdit.color || "#FF0000";
       form.startDate = props.sessionToEdit.startDate
         ? new Date(props.sessionToEdit.startDate)
         : new Date(props.sessionToEdit.date);
@@ -500,7 +493,7 @@ const resetForm = () => {
     }
   } else {
     form.bookId = "";
-    form.color = "#3B82F6";
+    form.color = "#FF0000";
     form.startPage = null;
     form.endPage = null;
     form.finishedBook = false;
@@ -647,7 +640,9 @@ watch(
       isClosing.value = false;
 
       if (!props.sessionToEdit?.id) {
-        await loadUnreadBooks();
+        if (libraryStore.books.length === 0) {
+          await libraryStore.loadBooks();
+        }
       }
 
       resetForm();
@@ -664,6 +659,17 @@ watch(
     }
   },
   { immediate: true },
+);
+
+watch(
+  () => props.isOpen,
+  async (open) => {
+    if (open && !props.sessionToEdit?.id) {
+      if (libraryStore.books.length === 0) {
+        await libraryStore.loadBooks();
+      }
+    }
+  },
 );
 
 // ========== Lifecycle ==========

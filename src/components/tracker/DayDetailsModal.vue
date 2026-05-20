@@ -56,8 +56,7 @@
                     </template>
                     <template v-else>
                       {{ session.startPage ? session.startPage : "NA" }}
-                      →
-                      {{ session.endPage ? session.endPage : `NA` }}
+                      → {{ session.endPage ? session.endPage : "NA" }}
                     </template>
                   </span>
                 </div>
@@ -125,26 +124,20 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useSessionStore } from "../../stores/session";
-import { useUserStore } from "../../stores/user";
+import { useAuthStore } from "../../stores/auth";
 import ModalHeader from "../modal/ModalHeader.vue";
 import ModalActions from "../modal/ModalActions.vue";
 import SessionModal from "./SessionModal.vue";
 
 const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
-  date: {
-    type: Date,
-    required: true,
-  },
+  isOpen: { type: Boolean, default: false },
+  date: { type: Date, required: true },
 });
 
 const emit = defineEmits(["close", "session-updated"]);
 
 const sessionStore = useSessionStore();
-const userStore = useUserStore();
+const authStore = useAuthStore();
 
 const isSessionModalOpen = ref(false);
 const selectedSession = ref(null);
@@ -158,8 +151,6 @@ const formattedDate = computed(() => {
     year: "numeric",
   });
 });
-
-const dailyGoal = computed(() => userStore.dailyGoal || 50);
 
 const daySessions = computed(() => {
   if (!props.date) return [];
@@ -208,9 +199,7 @@ const calculateTotalTime = (sessions) => {
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return total;
 
       const diffMs = end - start;
-      if (diffMs > 0) {
-        return total + diffMs / 1000;
-      }
+      if (diffMs > 0) return total + diffMs / 1000;
     } catch (err) {
       console.error("Error calculating time:", err);
     }
@@ -239,16 +228,8 @@ const formatTotalTime = (totalSeconds) => {
   const hourText = hours > 0 ? `${hours} ${declension(hours, hourForms)}` : "";
   const minuteText =
     minutes > 0 ? `${minutes} ${declension(minutes, minuteForms)}` : "";
-
-  // Если есть и часы, и минуты
-  if (hours > 0 && minutes > 0) {
-    return `${hourText} ${minuteText}`;
-  }
-  // Если только часы
-  if (hours > 0) {
-    return hourText;
-  }
-  // Если только минуты
+  if (hours > 0 && minutes > 0) return `${hourText} ${minuteText}`;
+  if (hours > 0) return hourText;
   return minuteText;
 };
 
@@ -259,7 +240,6 @@ const formatTime = (date) => {
   return d.toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
 };
 
-// ========== Управление сессиями ==========
 const editSession = (session) => {
   selectedSession.value = session;
   isSessionModalOpen.value = true;
@@ -269,6 +249,7 @@ const deleteSession = async (session) => {
   if (confirm(`Удалить сессию для книги "${session.bookTitle}"?`)) {
     try {
       await sessionStore.deleteSession(session.id);
+      emit("session-updated");
     } catch (error) {
       console.error("Ошибка удаления:", error);
       alert("Ошибка при удалении сессии");
@@ -285,8 +266,8 @@ const clearAllSessions = async () => {
     )
   ) {
     try {
-      const deletePromises = daySessions.value.map((session) =>
-        sessionStore.deleteSession(session.id),
+      const deletePromises = daySessions.value.map((s) =>
+        sessionStore.deleteSession(s.id),
       );
       await Promise.all(deletePromises);
       emit("session-updated");
@@ -315,19 +296,13 @@ const onSessionSaved = () => {
   emit("session-updated");
 };
 
-const close = () => {
-  emit("close");
-};
+const close = () => emit("close");
 
-// ========== Watchers ==========
 watch(
   () => props.isOpen,
   (open) => {
-    if (open) {
-      document.body.classList.add("modal-open");
-    } else {
-      document.body.classList.remove("modal-open");
-    }
+    if (open) document.body.classList.add("modal-open");
+    else document.body.classList.remove("modal-open");
   },
 );
 </script>

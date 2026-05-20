@@ -1,363 +1,134 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  getDocs,
-  getDoc,
-  writeBatch,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db, auth } from "../firebase/config";
+import api from "../api";
 import { booksDB } from "../db/index";
 
 export const useLibraryStore = defineStore("library", () => {
   const books = ref([]);
   const loading = ref(false);
   const error = ref(null);
-  const syncStatus = ref("synced");
-  const lastSyncTime = ref(null);
 
-  let unsubscribeBooks = null;
-
-  // ========== Работа с IndexedDB ==========
-  const saveBookToIndexedDB = async (bookData) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      await booksDB.put({
-        // Индексируемые поля
-        id: bookData.id,
-        title: bookData.title,
-        author: bookData.author,
-        status: bookData.status || "не прочитано",
-        format: bookData.format || "paper",
-        isFavorite: bookData.isFavorite || false,
-        rating: bookData.rating || 0,
-        createdAt: bookData.createdAt,
-
-        // Неиндексируемые поля
-        userId: user.uid,
-        description: bookData.description || "",
-        cover: bookData.cover || null,
-        originalCover: bookData.originalCover || null,
-        updatedAt: new Date(),
-      });
-    } catch (err) {
-      console.error("Ошибка сохранения книги в IndexedDB:", err);
-    }
-  };
-
-  // ========== Синхронизация ==========
-  const initSync = (userId) => {
-    if (!userId) return;
-
-    if (unsubscribeBooks) {
-      unsubscribeBooks();
-    }
-
+  const loadBooks = async () => {
     loading.value = true;
-    syncStatus.value = "synced";
-
+    error.value = null;
     try {
-      const booksRef = collection(db, `users/${userId}/books`);
-
-      const q = query(booksRef, orderBy("createdAt", "desc"));
-
-      unsubscribeBooks = onSnapshot(
-        q,
-        async (snapshot) => {
-          const newBooks = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-            updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-          }));
-
-          books.value = newBooks;
-
-          for (const book of newBooks) {
-            await saveBookToIndexedDB(book);
-          }
-
-          loading.value = false;
-          lastSyncTime.value = new Date();
-          error.value = null;
-        },
-        (err) => {
-          console.error("Sync error:", err);
-
-          if (
-            err.code === "unavailable" ||
-            err.code === "failed-precondition"
-          ) {
-            syncStatus.value = "offline";
-          } else {
-            syncStatus.value = "error";
-            error.value = err.message;
-          }
-
-          loading.value = false;
-        },
+      const response = await api.get("/books");
+      const fetchedBooks = response.data;
+      books.value = fetchedBooks;
+      await booksDB.bulkPut(
+        fetchedBooks.map((book) => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          publisher: book.publisher,
+          format: book.format,
+          status: book.status,
+          rating: book.rating,
+          description: book.description,
+          isFavorite: book.isFavorite,
+          createdAt: book.createdAt,
+          updatedAt: book.updatedAt,
+          userId: book.userId,
+        })),
       );
     } catch (err) {
-      console.error("Init sync error:", err);
       error.value = err.message;
-      syncStatus.value = "error";
+      console.error("Load books error", err);
+      const cached = await booksDB.toArray();
+      if (cached.length) {
+        books.value = cached;
+      }
+    } finally {
       loading.value = false;
     }
   };
 
-  const cleanup = () => {
-    if (unsubscribeBooks) {
-      unsubscribeBooks();
-      unsubscribeBooks = null;
-    }
-    books.value = [];
-    error.value = null;
-  };
-
-  // Следим за сетью
-  const initNetworkListener = () => {
-    window.addEventListener("online", () => {
-      syncStatus.value = "synced";
-    });
-    window.addEventListener("offline", () => {
-      syncStatus.value = "offline";
-    });
-  };
-
-  // ========== CRUD операции ==========
-  const addBook = async (bookData) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
-    const userId = user.uid;
-
-    // Оптимистичное обновление
-    const tempId = `temp_${Date.now()}`;
-    const optimisticBook = {
-      id: tempId,
-      ...bookData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      _syncStatus: "pending",
-    };
-
-    books.value = [optimisticBook, ...books.value];
-    syncStatus.value = "pending";
-
+  async function addBook(bookData) {
     try {
-      const booksRef = collection(db, `users/${userId}/books`);
-
-      const docRef = await addDoc(booksRef, {
-        ...bookData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        isFavorite: bookData.isFavorite || false,
-        rating: bookData.rating || 0,
-        format: bookData.format || "paper",
-        userId: userId,
+      const response = await api.post("/books", bookData);
+      const newBook = response.data;
+      books.value.push(newBook);
+      await booksDB.put({
+        id: newBook.id,
+        title: newBook.title,
+        author: newBook.author,
+        publisher: newBook.publisher,
+        format: newBook.format,
+        status: newBook.status,
+        rating: newBook.rating,
+        description: newBook.description,
+        isFavorite: newBook.isFavorite,
+        createdAt: newBook.createdAt,
+        updatedAt: newBook.updatedAt,
       });
-
-      books.value = books.value.filter((b) => b.id !== tempId);
-
-      return docRef.id;
+      return newBook;
     } catch (err) {
-      console.error("Add book error:", err);
-
-      books.value = books.value.map((b) =>
-        b.id === tempId ? { ...b, _syncStatus: "error" } : b,
-      );
-
-      error.value = err.message;
+      console.error("Add book error", err);
       throw err;
     }
-  };
+  }
 
-  const updateBook = async (id, bookData) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
-    const userId = user.uid;
-
-    // Оптимистичное обновление
-    const index = books.value.findIndex((b) => b.id === id);
-    if (index === -1) return;
-
-    const originalBook = { ...books.value[index] };
-    books.value[index] = {
-      ...books.value[index],
-      ...bookData,
-      updatedAt: new Date(),
-      _syncStatus: "pending",
-    };
-
-    syncStatus.value = "pending";
-
+  async function updateBook(id, bookData) {
     try {
-      const bookRef = doc(db, `users/${userId}/books/${id}`);
-      await updateDoc(bookRef, {
-        ...bookData,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (err) {
-      console.error("Update error:", err);
-      books.value[index] = originalBook;
-      error.value = err.message;
-      throw err;
-    }
-  };
-
-  const deleteBook = async (id) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
-    const userId = user.uid;
-
-    // Оптимистичное удаление
-    const deletedBook = books.value.find((b) => b.id === id);
-    books.value = books.value.filter((b) => b.id !== id);
-    syncStatus.value = "pending";
-
-    try {
-      const bookRef = doc(db, `users/${userId}/books/${id}`);
-      await deleteDoc(bookRef);
-    } catch (err) {
-      console.error("Delete error:", err);
-      if (deletedBook) {
-        books.value = [deletedBook, ...books.value];
-      }
-      error.value = err.message;
-      throw err;
-    }
-  };
-
-  // ========== Действия с книгами ==========
-  const toggleFavorite = async (book) => {
-    await updateBook(book.id, {
-      isFavorite: !book.isFavorite,
-    });
-  };
-
-  // ========== Получение данных ==========
-  const getBook = async (id) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
-    try {
-      const bookRef = doc(db, `users/${user.uid}/books/${id}`);
-      const bookSnap = await getDoc(bookRef);
-
-      if (bookSnap.exists()) {
-        return {
-          id: bookSnap.id,
-          ...bookSnap.data(),
+      await api.put(`/books/${id}`, bookData);
+      const index = books.value.findIndex((b) => b.id === id);
+      if (index !== -1) {
+        const updated = {
+          ...books.value[index],
+          ...bookData,
+          updatedAt: new Date().toISOString(),
         };
-      } else {
-        return null;
+        books.value[index] = updated;
+        await booksDB.update(id, updated);
       }
     } catch (err) {
-      console.error("Get book error:", err);
+      console.error("Update book error", err);
       throw err;
     }
-  };
+  }
 
-  const getUnreadBooks = async (searchQuery = "") => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
+  async function deleteBook(id) {
     try {
-      const booksRef = collection(db, `users/${user.uid}/books`);
-      const q = query(
-        booksRef,
-        where("status", "==", "не прочитано"),
-        orderBy("title"),
-      );
-
-      const snapshot = await getDocs(q);
-      let books = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      if (searchQuery) {
-        const queryLower = searchQuery.toLowerCase();
-        books = books.filter(
-          (book) =>
-            book.title.toLowerCase().includes(queryLower) ||
-            book.author.toLowerCase().includes(queryLower),
-        );
-      }
-
-      return books;
+      await api.delete(`/books/${id}`);
+      books.value = books.value.filter((b) => b.id !== id);
+      await booksDB.delete(id);
     } catch (err) {
-      console.error("Get unread books error:", err);
-      return [];
+      console.error("Delete book error", err);
+      throw err;
     }
-  };
+  }
 
-  const getBooksByStatus = (status) => {
-    return books.value.filter((book) => book.status === status);
-  };
+  async function toggleFavorite(book) {
+    try {
+      await api.patch(`/books/${book.id}/favorite`);
+      book.isFavorite = !book.isFavorite;
+      const index = books.value.findIndex((b) => b.id === book.id);
+      if (index !== -1) {
+        books.value[index].isFavorite = book.isFavorite;
+        await booksDB.update(book.id, {
+          isFavorite: book.isFavorite,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error("Toggle favorite error", err);
+      throw err;
+    }
+  }
 
-  const getFavoriteBooks = () => {
-    return books.value.filter((book) => book.isFavorite);
-  };
-
-  // ========== Пакетные операции ==========
-  const batchAddBooks = async (booksArray) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
-    const userId = user.uid;
-    const batch = writeBatch(db);
-    const booksRef = collection(db, `users/${userId}/books`);
-
-    booksArray.forEach((bookData) => {
-      const newBookRef = doc(booksRef);
-      batch.set(newBookRef, {
-        ...bookData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        userId,
-      });
-    });
-
-    await batch.commit();
-  };
-
-  // ========== Инициализация ==========
-  const init = () => {
-    console.log("Library store initialized");
-    initNetworkListener();
-  };
+  function getUnreadBooks() {
+    return books.value.filter((book) => book.status !== "прочитано");
+  }
 
   return {
     books,
     loading,
     error,
-    syncStatus,
-    lastSyncTime,
-    init,
-    initSync,
-    cleanup,
+    loadBooks,
     addBook,
     updateBook,
     deleteBook,
     toggleFavorite,
-    getBook,
     getUnreadBooks,
-    getBooksByStatus,
-    getFavoriteBooks,
-    batchAddBooks,
   };
 });

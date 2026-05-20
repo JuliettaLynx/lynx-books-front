@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { auth } from "../firebase/config";
 import AuthPage from "../views/Auth.vue";
 import LibraryView from "../views/LibraryView.vue";
 import TrackerView from "../views/TrackerView.vue";
 import WishlistView from "../views/WishlistView.vue";
 import NotFoundView from "../views/404.vue";
+import { useAuthStore } from "../stores/auth";
 
 const routes = [
   {
@@ -39,7 +39,7 @@ const routes = [
     path: "/404",
     name: "404",
     component: NotFoundView,
-    meta: { showBottomNav: false }, // не показывать навигацию
+    meta: { showBottomNav: false },
   },
   {
     path: "/:pathMatch(.*)*",
@@ -52,34 +52,21 @@ const router = createRouter({
   routes,
 });
 
-let isAuthReady = false;
-
+// Навигационный guard
 router.beforeEach(async (to, from, next) => {
-  // Ждём, пока Firebase инициализируется
-  if (!isAuthReady) {
-    await new Promise((resolve) => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        unsubscribe();
-        isAuthReady = true;
-        resolve(user);
-      });
-    });
+  const authStore = useAuthStore();
+
+  // Если ещё нет пользователя, но есть токен – пытаемся загрузить
+  if (!authStore.user && localStorage.getItem("access_token")) {
+    await authStore.fetchUser();
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  const requiresGuest = to.matched.some((record) => record.meta.requiresGuest);
-  const user = auth.currentUser;
+  const isAuthenticated = authStore.isAuthenticated;
 
-  console.log("Navigation guard:", {
-    path: to.path,
-    requiresAuth,
-    requiresGuest,
-    user: user?.email,
-  });
-
-  if (requiresAuth && !user) {
+  if (requiresAuth && !isAuthenticated) {
     next("/auth");
-  } else if (requiresGuest && user) {
+  } else if (to.path === "/auth" && isAuthenticated) {
     next("/library");
   } else {
     next();
