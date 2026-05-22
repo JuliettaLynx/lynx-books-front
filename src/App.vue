@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-14">
-    <LoadingSpinner v-if="authStore.loading" />
+    <LoadingSpinner v-if="authStore.loading" fullscreen />
     <template v-else>
       <router-view />
       <TabBar v-if="authStore.isAuthenticated && $route.meta.showBottomNav" />
