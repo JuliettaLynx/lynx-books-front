@@ -12,29 +12,150 @@
             Библиотека
           </h1>
           <div class="flex gap-1 text-black dark:text-white">
-            <!-- Кнопка сортировки -->
-            <IconButton
-              :icon="sortIcon"
-              :variant="'primary'"
-              @click="cycleSortMode"
-              class="text-xl"
-            />
+            <!-- Кнопка сортировки (dropdown) -->
+            <div class="relative">
+              <IconButton
+                icon="🔽"
+                variant="primary"
+                @click="toggleSortMenu"
+                class="text-xl"
+              />
+              <div
+                v-if="sortMenuOpen"
+                class="absolute right-0 mt-2 w-56 bg-white dark:bg-bg-secondary-dark rounded-lg shadow-lg border border-border dark:border-border-dark z-30"
+              >
+                <div class="p-2">
+                  <div class="mb-2">
+                    <div
+                      class="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1"
+                    >
+                      Название
+                    </div>
+                    <button
+                      @click="setSort('title_asc')"
+                      class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                      :class="{
+                        'bg-purple-200 dark:bg-accent/30':
+                          currentSort === 'title_asc',
+                      }"
+                    >
+                      По возрастанию (А–Я)
+                    </button>
+                    <button
+                      @click="setSort('title_desc')"
+                      class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                      :class="{
+                        'bg-purple-200 dark:bg-accent/30':
+                          currentSort === 'title_desc',
+                      }"
+                    >
+                      По убыванию (Я–А)
+                    </button>
+                  </div>
+                  <div class="mb-2">
+                    <div
+                      class="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1"
+                    >
+                      Автор
+                    </div>
+                    <button
+                      @click="setSort('author_asc')"
+                      class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                      :class="{
+                        'bg-purple-200 dark:bg-accent/30':
+                          currentSort === 'author_asc',
+                      }"
+                    >
+                      По возрастанию (А–Я)
+                    </button>
+                    <button
+                      @click="setSort('author_desc')"
+                      class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                      :class="{
+                        'bg-purple-200 dark:bg-accent/30':
+                          currentSort === 'author_desc',
+                      }"
+                    >
+                      По убыванию (Я–А)
+                    </button>
+                  </div>
+                  <hr class="my-1 border-border dark:border-border-dark" />
+                  <button
+                    @click="setSort(null)"
+                    class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                  >
+                    Без сортировки
+                  </button>
+                </div>
+              </div>
+            </div>
 
-            <!-- Кнопка фильтра -->
-            <IconButton
-              :icon="filterIcon"
-              :variant="'primary'"
-              @click="cycleFilterMode"
-              class="text-xl"
-            />
-
-            <!-- Кнопка переключения режима отображения -->
-            <IconButton
-              :icon="viewMode === 'grid' ? '⊞' : '☰'"
-              :variant="'primary'"
-              @click="toggleViewMode"
-              class="text-xl text-center w-10"
-            />
+            <!-- Кнопка фильтра (dropdown) -->
+            <div class="relative">
+              <IconButton
+                :icon="filterIcon"
+                variant="primary"
+                @click="toggleFilterMenu"
+                class="text-xl"
+              />
+              <div
+                v-if="filterMenuOpen"
+                class="absolute right-0 mt-2 w-48 bg-white dark:bg-bg-secondary-dark rounded-lg shadow-lg border border-border dark:border-border-dark z-30"
+              >
+                <div class="p-2">
+                  <button
+                    @click="setFilter('all')"
+                    class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                    :class="{
+                      'bg-purple-200 dark:bg-accent/30':
+                        currentFilter === 'all',
+                    }"
+                  >
+                    📚 Все
+                  </button>
+                  <button
+                    @click="setFilter('favorite')"
+                    class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                    :class="{
+                      'bg-purple-200 dark:bg-accent/30':
+                        currentFilter === 'favorite',
+                    }"
+                  >
+                    ❤️ Избранные
+                  </button>
+                  <button
+                    @click="setFilter('finished')"
+                    class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                    :class="{
+                      'bg-purple-200 dark:bg-accent/30':
+                        currentFilter === 'finished',
+                    }"
+                  >
+                    ✅ Прочитано
+                  </button>
+                  <button
+                    @click="setFilter('unfinished')"
+                    class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                    :class="{
+                      'bg-purple-200 dark:bg-accent/30':
+                        currentFilter === 'unfinished',
+                    }"
+                  >
+                    📖 Не прочитано
+                  </button>
+                  <button
+                    @click="setFilter('abandoned')"
+                    class="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-purple-100 dark:hover:bg-border-dark"
+                    :class="{
+                      'bg-purple-200 dark:bg-accent/30':
+                        currentFilter === 'abandoned',
+                    }"
+                  >
+                    ❌ Брошено
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <!-- Иконка профиля -->
             <UserProfile />
@@ -68,27 +189,22 @@
     <div v-else class="p-4">
       <div v-if="filteredBooks.length === 0" class="text-center py-8">
         <p class="text-gray-500 dark:text-gray-400">Книги не найдены</p>
-        <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">
-          {{
-            libraryStore.books.length === 0
-              ? "Добавьте первую книгу"
-              : "Попробуйте изменить параметры поиска"
-          }}
-        </p>
       </div>
 
       <div
         v-else
         :class="{
-          'grid grid-cols-2 gap-3': viewMode === 'tile',
-          'flex flex-col gap-3': viewMode === 'grid',
+          'grid gap-3 grid-cols-2  md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5':
+            displayMode === 'grid',
+          'grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3':
+            displayMode === 'list',
         }"
       >
         <BookCard
           v-for="book in filteredBooks"
           :key="book.id"
           :book="book"
-          :is-grid="viewMode === 'grid'"
+          :is-grid="displayMode === 'list'"
           @edit="openEditModal"
           @favorite="handleToggleFavorite"
           @delete="handleDelete"
@@ -111,6 +227,17 @@
       @close="closeModal"
       @save="saveBook"
     />
+
+    <!-- Модалка подтверждения удаления -->
+    <DeleteModal
+      :is-open="isDeleteModalOpen"
+      title="Удалить книгу?"
+      :message="`Вы уверены, что хотите удалить книгу «${deletingBook?.title}»?`"
+      confirm-text="Удалить"
+      danger
+      @close="closeDeleteModal"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
@@ -118,36 +245,60 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useDebounceFn } from "@vueuse/core";
 import { useLibraryStore } from "../stores/library";
+import { useDisplaySettingsStore } from "../stores/displaySettings";
 import SkeletonLoader from "vue3-skeleton-loader";
 import IconButton from "../components/IconButton.vue";
 import SearchInput from "../components/library/SearchInput.vue";
 import BookCard from "../components/library/BookCard.vue";
 import BookModal from "../components/library/BookModal.vue";
+import DeleteBookModal from "../components/DeleteModal.vue";
 import UserProfile from "../components/UserProfile.vue";
 import LoadingSpinner from "../components/LoadingSpinner.vue";
+import DeleteModal from "../components/DeleteModal.vue";
 
 const libraryStore = useLibraryStore();
 
-// Состояние UI
-const viewMode = ref("grid"); // 'grid' или 'tile'
+const displaySettingsStore = useDisplaySettingsStore();
+const displayMode = computed(() => displaySettingsStore.displayMode);
+
+// Состояния для выпадающих меню
+const sortMenuOpen = ref(false);
+const filterMenuOpen = ref(false);
+const currentSort = ref(null); // 'title_asc', 'title_desc', 'author_asc', 'author_desc', null
+const currentFilter = ref("all"); // 'all', 'favorite', 'finished', 'unfinished', 'abandoned'
+
+// Поиск
 const searchQuery = ref("");
 const debouncedSearch = ref("");
-const sortMode = ref(0); // 0: название А-Я, 1: название Я-А, 2: автор А-Я, 3: автор Я-А
-const filterMode = ref(0); // 0: все, 1: избранные, 2: прочитано, 3: не прочитано, 4: брошено
+
+// Модалка книги
 const isModalOpen = ref(false);
 const editingBook = ref(null);
 
+// Модалка удаления
+const isDeleteModalOpen = ref(false);
+const deletingBook = ref(null);
+
+// Иконка для кнопки фильтра (меняется в зависимости от выбранного фильтра)
+const filterIcon = computed(() => {
+  switch (currentFilter.value) {
+    case "favorite":
+      return "❤️";
+    case "finished":
+      return "✅";
+    case "unfinished":
+      return "📖";
+    case "abandoned":
+      return "❌";
+    default:
+      return "📚";
+  }
+});
+
+// Загрузка книг при монтировании
 onMounted(() => {
   libraryStore.loadBooks();
 });
-
-// Иконки для сортировки
-const sortIcons = ["🔤↑", "🔤↓", "👤↑", "👤↓"];
-const sortIcon = computed(() => sortIcons[sortMode.value]);
-
-// Иконки для фильтра
-const filterIcons = ["📚", "❤️", "✅", "📖", "❌"];
-const filterIcon = computed(() => filterIcons[filterMode.value]);
 
 // Методы управления модалкой
 const openModal = () => {
@@ -165,19 +316,40 @@ const closeModal = () => {
   editingBook.value = null;
 };
 
-// Переключение режима отображения
-const toggleViewMode = () => {
-  viewMode.value = viewMode.value === "grid" ? "tile" : "grid";
+// Методы для модалки удаления
+const openDeleteModal = (book) => {
+  deletingBook.value = book;
+  isDeleteModalOpen.value = true;
 };
 
-// Циклическое переключение сортировки
-const cycleSortMode = () => {
-  sortMode.value = (sortMode.value + 1) % 4;
+const closeDeleteModal = () => {
+  isDeleteModalOpen.value = false;
+  deletingBook.value = null;
 };
 
-// Циклическое переключение фильтра
-const cycleFilterMode = () => {
-  filterMode.value = (filterMode.value + 1) % 5;
+const confirmDelete = async () => {
+  if (deletingBook.value) {
+    await libraryStore.deleteBook(deletingBook.value.id);
+    closeDeleteModal();
+  }
+};
+
+// Методы для dropdown
+const toggleSortMenu = () => {
+  sortMenuOpen.value = !sortMenuOpen.value;
+  filterMenuOpen.value = false;
+};
+const toggleFilterMenu = () => {
+  filterMenuOpen.value = !filterMenuOpen.value;
+  sortMenuOpen.value = false;
+};
+const setSort = (value) => {
+  currentSort.value = value;
+  sortMenuOpen.value = false;
+};
+const setFilter = (value) => {
+  currentFilter.value = value;
+  filterMenuOpen.value = false;
 };
 
 // Debounce для поиска
@@ -192,55 +364,52 @@ watch(searchQuery, (value) => {
 // Применение фильтра
 const filteredByStatus = computed(() => {
   let filtered = [...libraryStore.books];
-
-  switch (filterMode.value) {
-    case 1: // избранные
+  switch (currentFilter.value) {
+    case "favorite":
       filtered = filtered.filter((book) => book.isFavorite);
       break;
-    case 2: // прочитано
+    case "finished":
       filtered = filtered.filter((book) => book.status === "прочитано");
       break;
-    case 3: // не прочитано
+    case "unfinished":
       filtered = filtered.filter((book) => book.status === "не прочитано");
       break;
-    case 4: // брошено
+    case "abandoned":
       filtered = filtered.filter((book) => book.status === "брошено");
       break;
-    case 0: // все
-    default:
+    default: // 'all'
       break;
   }
-
   return filtered;
 });
 
 // Поиск по названию и автору
 const searched = computed(() => {
   if (!debouncedSearch.value) return filteredByStatus.value;
-
   const query = debouncedSearch.value.toLowerCase();
   return filteredByStatus.value.filter(
     (book) =>
       book.title.toLowerCase().includes(query) ||
-      book.author.toLowerCase().includes(query),
+      (book.author && book.author.toLowerCase().includes(query)),
   );
 });
 
 // Применение сортировки
 const filteredBooks = computed(() => {
   const sorted = [...searched.value];
+  if (!currentSort.value) return sorted; // без сортировки
 
   sorted.sort((a, b) => {
-    switch (sortMode.value) {
-      case 0: // название А-Я
+    switch (currentSort.value) {
+      case "title_asc":
         return (a.title || "").localeCompare(b.title || "");
-      case 1: // название Я-А
+      case "title_desc":
         return (b.title || "").localeCompare(a.title || "");
-      case 2: // автор А-Я
+      case "author_asc":
         const authorA = a.author || "";
         const authorB = b.author || "";
         return authorA.localeCompare(authorB);
-      case 3: // автор Я-А
+      case "author_desc":
         const authorA2 = a.author || "";
         const authorB2 = b.author || "";
         return authorB2.localeCompare(authorA2);
@@ -248,7 +417,6 @@ const filteredBooks = computed(() => {
         return 0;
     }
   });
-
   return sorted;
 });
 
@@ -258,9 +426,7 @@ const handleToggleFavorite = async (book) => {
 };
 
 const handleDelete = async (book) => {
-  if (confirm(`Удалить книгу "${book.title}"?`)) {
-    await libraryStore.deleteBook(book.id);
-  }
+  openDeleteModal(book);
 };
 
 // Сохранение книги
