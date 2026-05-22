@@ -118,6 +118,37 @@
         </div>
       </div>
 
+      <!-- Настройки отображения -->
+      <div class="p-4 border-b border-border dark:border-border-dark">
+        <p class="mb-3">Вид карточек:</p>
+        <div class="flex gap-2">
+          <button
+            @click="setDisplayMode('grid')"
+            class="flex-1 flex items-center justify-center gap-2 p-2 rounded-lg"
+            :class="
+              displayMode === 'grid'
+                ? 'bg-accent/10 ring-2 ring-accent/50'
+                : 'hover:bg-border/50 dark:hover:bg-border-dark/40'
+            "
+          >
+            <span>⊞</span>
+            <span class="text-sm">Сетка</span>
+          </button>
+          <button
+            @click="setDisplayMode('list')"
+            class="flex-1 flex items-center justify-center gap-2 p-2 rounded-lg"
+            :class="
+              displayMode === 'list'
+                ? 'bg-accent/10 ring-2 ring-accent/50'
+                : 'hover:bg-border/50 dark:hover:bg-border-dark/40'
+            "
+          >
+            <span>☰</span>
+            <span class="text-sm">Список</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Сменить пароль -->
       <div class="p-2 border-b border-border dark:border-border-dark">
         <button
@@ -131,17 +162,37 @@
       <!-- Выход и удаление аккаунта -->
       <div class="p-2">
         <button
-          @click="handleLogout"
+          @click="openLogoutModal"
           class="w-full px-4 py-2 text-left hover:bg-border/50 dark:hover:bg-border-dark/40 rounded-lg text-red-600 dark:text-red-400"
         >
           Выйти
         </button>
         <button
-          @click="confirmDelete"
+          @click="openDeleteAccountModal"
           class="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400"
         >
           Удалить аккаунт
         </button>
+
+        <DeleteModal
+          :is-open="isLogoutModalOpen"
+          title="Выход из системы"
+          message="Вы действительно хотите выйти?"
+          confirm-text="Выйти"
+          :danger="false"
+          @close="closeLogoutModal"
+          @confirm="confirmLogout"
+        />
+
+        <DeleteModal
+          :is-open="isDeleteAccountModalOpen"
+          title="Удалить аккаунт?"
+          message="Вы уверены? Это действие нельзя отменить. Все ваши данные будут удалены."
+          confirm-text="Удалить навсегда"
+          danger
+          @close="closeDeleteAccountModal"
+          @confirm="handleDeleteAccount"
+        />
       </div>
     </div>
 
@@ -303,7 +354,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useColorMode } from "@vueuse/core";
 import { useAuthStore } from "../stores/auth";
+import { useDisplaySettingsStore } from "../stores/displaySettings";
 import AvatarUploader from "./AvatarUploader.vue";
+import DeleteModal from "./DeleteModal.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -312,6 +365,13 @@ const colorMode = useColorMode({
   modes: { light: "light", dark: "dark", auto: "auto" },
 });
 
+const displaySettingsStore = useDisplaySettingsStore();
+const displayMode = computed(() => displaySettingsStore.displayMode);
+
+const setDisplayMode = (mode) => {
+  displaySettingsStore.setDisplayMode(mode);
+};
+
 // UI состояние
 const isOpen = ref(false);
 const activeSection = ref(null);
@@ -319,6 +379,9 @@ const menuContainer = ref(null);
 const sectionLoading = ref(false);
 const sectionError = ref("");
 const sectionSuccess = ref("");
+
+const isDeleteAccountModalOpen = ref(false);
+const isLogoutModalOpen = ref(false);
 
 // Данные форм
 const editDisplayName = ref("");
@@ -452,16 +515,35 @@ const handleLogout = async () => {
   authStore.logout();
 };
 
-// Удаление аккаунта
-const confirmDelete = () => {
-  if (
-    confirm(
-      "Вы уверены? Это действие нельзя отменить. Все ваши данные будут удалены.",
-    )
-  ) {
-    authStore
-      .deleteAccount()
-      .catch((err) => alert("Ошибка при удалении аккаунта"));
+// Модалка выхода из аккаунта
+const openLogoutModal = () => {
+  isLogoutModalOpen.value = true;
+};
+
+const closeLogoutModal = () => {
+  isLogoutModalOpen.value = false;
+};
+
+const confirmLogout = () => {
+  authStore.logout();
+  closeLogoutModal();
+};
+
+// Модалка удаления аккаунта
+const openDeleteAccountModal = () => {
+  isDeleteAccountModalOpen.value = true;
+};
+
+const closeDeleteAccountModal = () => {
+  isDeleteAccountModalOpen.value = false;
+};
+
+const handleDeleteAccount = async () => {
+  try {
+    await authStore.deleteAccount();
+    closeDeleteAccountModal();
+  } catch (err) {
+    alert("Ошибка при удалении аккаунта");
   }
 };
 

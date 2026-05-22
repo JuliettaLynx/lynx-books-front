@@ -14,7 +14,6 @@
         />
 
         <div class="flex-1 overflow-y-auto p-4">
-          <!--Форма -->
           <div class="flex gap-4 mt-4">
             <CoverUploader
               v-model:coverPreview="coverPreview"
@@ -37,6 +36,7 @@
             v-if="form.status === 'прочитано'"
             v-model="form.rating"
           />
+          <BookReview v-if="form.status === 'прочитано'" />
           <BookDescription v-model="form.description" />
         </div>
 
@@ -60,6 +60,7 @@ import BookFormat from "../modal/BookFormat.vue";
 import BookStatus from "../modal/BookStatus.vue";
 import BookRating from "../modal/BookRating.vue";
 import BookDescription from "../modal/BookDescription.vue";
+import BookReview from "../modal/BookReview.vue";
 import PublisherSelect from "../modal/PublisherSelect.vue";
 import AuthorSelect from "../modal/AuthorSelect.vue";
 
@@ -84,6 +85,7 @@ const form = reactive({
   status: "не прочитано",
   rating: 0,
   description: "",
+  review: "",
 });
 
 // Сброс формы
@@ -94,6 +96,7 @@ const resetForm = () => {
   form.status = "не прочитано";
   form.rating = 0;
   form.description = "";
+  form.review = "";
   form.publisher = "";
   coverPreview.value = null;
   coverFile.value = null;
@@ -110,6 +113,7 @@ watch(
       form.status = book.status || "не прочитано";
       form.rating = book.rating || 0;
       form.description = book.description || "";
+      form.review = book.review || "";
 
       if (book.author) {
         if (typeof book.author === "object" && book.author !== null) {
@@ -137,7 +141,7 @@ watch(
         coverPreview.value = book.cover;
       }
 
-      // Здесь можно загрузить originalCover из книги, если оно есть
+      // Загружаем originalCover из книги, если оно есть
       if (book.originalCover) {
         originalCover.value = book.originalCover;
       }
@@ -175,6 +179,7 @@ const handleSubmit = () => {
     status: form.status,
     rating: form.status === "прочитано" ? form.rating : 0,
     description: form.description.trim(),
+    review: form.review.trim(),
     cover: coverPreview.value,
     originalCover: originalCover.value,
     publisher: form.publisher?.trim() || null,
