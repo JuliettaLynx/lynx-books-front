@@ -31,6 +31,8 @@ export const useWishlistStore = defineStore("wishlist", () => {
           cover: book.cover,
           binding: book.binding,
           priority: book.priority,
+          note: book.note,
+          description: book.description,
           createdAt: book.createdAt,
           updatedAt: book.updatedAt,
           userId: book.userId,
@@ -63,6 +65,8 @@ export const useWishlistStore = defineStore("wishlist", () => {
         cover: newBook.cover,
         binding: newBook.binding,
         priority: newBook.priority,
+        note: newBook.note,
+        description: newBook.description,
         createdAt: newBook.createdAt,
         updatedAt: newBook.updatedAt,
       });

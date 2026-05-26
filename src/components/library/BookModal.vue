@@ -36,7 +36,10 @@
             v-if="form.status === 'прочитано'"
             v-model="form.rating"
           />
-          <BookReview v-if="form.status === 'прочитано'" />
+          <BookReview
+            v-if="form.status === 'прочитано'"
+            v-model="form.review"
+          />
           <BookDescription v-model="form.description" />
         </div>
 
