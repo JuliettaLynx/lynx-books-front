@@ -137,7 +137,7 @@
 
 <script setup>
 import { computed } from "vue";
-import BookActions from "./BookActions.vue";
+import BookActions from "../library/BookActions.vue";
 
 const props = defineProps({
   book: {

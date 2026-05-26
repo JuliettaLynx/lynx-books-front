@@ -3,6 +3,7 @@ import AuthPage from "../views/Auth.vue";
 import LibraryView from "../views/LibraryView.vue";
 import TrackerView from "../views/TrackerView.vue";
 import WishlistView from "../views/WishlistView.vue";
+import CommunityView from "../views/CommunityView.vue";
 import NotFoundView from "../views/404.vue";
 import { useAuthStore } from "../stores/auth";
 
@@ -27,6 +28,12 @@ const routes = [
     path: "/wishlist",
     name: "wishlist",
     component: WishlistView,
+    meta: { showBottomNav: true, requiresAuth: true },
+  },
+  {
+    path: "/community",
+    name: "community",
+    component: CommunityView,
     meta: { showBottomNav: true, requiresAuth: true },
   },
   {
