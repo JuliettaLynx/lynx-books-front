@@ -85,14 +85,14 @@
           <button
             type="submit"
             :disabled="loading"
-            class="w-full py-3 bg-accent/80 hover:bg-accent/60 font-medium text-black dark:text-white rounded-lg transition-colors disabled:opacity-50"
+            class="w-full py-3 bg-accent/80 hover:bg-accent/60 font-medium text-white dark:text-bg-secondary-dark rounded-lg transition-colors disabled:opacity-50"
           >
             <span v-if="!loading">{{
               isLoginMode ? "Войти" : "Зарегистрироваться"
             }}</span>
-            <span v-else class="flex items-center justify-center"
-              ><span class="animate-spin mr-2">⌛</span> Загрузка...</span
-            >
+            <span v-else class="flex items-center justify-center">
+              <span class="animate-spin mr-2">⌛</span> Загрузка...
+            </span>
           </button>
 
           <div class="relative my-6">
@@ -103,25 +103,17 @@
             </div>
             <div class="relative flex justify-center text-sm">
               <span
-                class="px-2 bg-white dark:bg-border-dark rounded-lg text-gray-500 dark:text-gray-400"
-                >или</span
+                class="px-2 bg-white dark:bg-bg-secondary-dark rounded-lg text-gray-500 dark:text-gray-400"
               >
+                или
+              </span>
             </div>
           </div>
 
-          <button
-            type="button"
-            @click="handleGoogleLogin"
-            :disabled="loading"
-            class="w-full py-3 bg-white dark:bg-border-dark/40 border border-border dark:border-border-dark hover:bg-gray-50 dark:hover:bg-border-dark text-gray-700 dark:text-gray-200 rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            <img
-              src="https://www.google.com/favicon.ico"
-              alt="Google"
-              class="w-5 h-5"
-            />
-            <span>Продолжить с Google</span>
-          </button>
+          <!-- Контейнер для Google кнопки с кастомными обводками -->
+          <div class="custom-google-btn-wrapper">
+            <div id="googleSignInButton" class="w-full"></div>
+          </div>
 
           <!-- Переключение режима -->
           <p class="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
@@ -141,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { useAuthStore } from "../stores/auth";
 import ThemeToggle from "../components/ThemeToggle.vue";
 
@@ -171,13 +163,86 @@ const handleSubmit = async () => {
   }
 };
 
-const handleGoogleLogin = () => {
-  // Позже реализуем
-  window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+const handleCustomButtonClick = () => {
+  // Нажимаем на скрытую кнопку Google
+  const googleBtn = document.querySelector(".g_id_signin");
+  if (googleBtn) {
+    googleBtn.click();
+  }
+};
+
+const handleGoogleCredential = async (credentialResponse) => {
+  loading.value = true;
+  error.value = "";
+  try {
+    await authStore.googleLogin(credentialResponse.credential);
+  } catch (err) {
+    error.value = err.message || "Ошибка входа через Google";
+    alert(error.value);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const renderGoogleButton = () => {
+  if (!window.google) {
+    console.error("❌ Google не загружен");
+    return;
+  }
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  if (!clientId) {
+    console.error("❌ VITE_GOOGLE_CLIENT_ID не настроен");
+    error.value = "Client ID не настроен";
+    return;
+  }
+
+  try {
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+
+    const buttonContainer = document.getElementById("googleSignInButton");
+    if (buttonContainer) {
+      window.google.accounts.id.renderButton(buttonContainer, {
+        theme: "outline",
+        size: "large",
+        width: "100%",
+        type: "signin",
+        text: "signin_with",
+        locale: "ru",
+      });
+      console.log("✅ Google кнопка отрендерена");
+    }
+  } catch (err) {
+    console.error("❌ Ошибка инициализации:", err);
+    error.value = "Ошибка Google Sign-In: " + err.message;
+  }
 };
 
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value;
   error.value = "";
 };
+
+onMounted(async () => {
+  await nextTick();
+
+  const script = document.createElement("script");
+  script.src = "https://accounts.google.com/gsi/client";
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    console.log("✅ Google Identity Services загружен");
+    setTimeout(renderGoogleButton, 100);
+  };
+  script.onerror = () => {
+    console.error("❌ Не удалось загрузить Google Identity Services");
+  };
+  document.head.appendChild(script);
+});
 </script>

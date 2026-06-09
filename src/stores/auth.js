@@ -26,7 +26,6 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => !!user.value);
 
-  // Загрузка пользователя с сервера + кэширование в IndexedDB
   async function fetchUser() {
     const token = localStorage.getItem("access_token");
     const storedUserId = localStorage.getItem("user_id");
@@ -38,8 +37,6 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       const response = await api.get("/auth/me");
       user.value = response.data;
-      // Сохраняем в IndexedDB (ключ userId)
-
       await usersDB.put({
         userId: user.value.id,
         email: user.value.email,
@@ -50,11 +47,9 @@ export const useAuthStore = defineStore("auth", () => {
         updatedAt: new Date().toISOString(),
       });
 
-      // Обновляем user_id в localStorage на случай, если изменился
       localStorage.setItem("user_id", user.value.id);
     } catch (error) {
       console.error("Failed to fetch user", error);
-      // Попытка загрузить из IndexedDB, если есть сохранённый userId
       if (storedUserId) {
         const cached = await usersDB.get(storedUserId);
         if (cached) {
@@ -69,14 +64,12 @@ export const useAuthStore = defineStore("auth", () => {
           return;
         }
       }
-      // Если кэша нет, выходим из системы
       logout();
     } finally {
       loading.value = false;
     }
   }
 
-  // Логин
   async function login(email, password) {
     loading.value = true;
     try {
@@ -111,7 +104,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Регистрация
   async function register(email, password, displayName) {
     loading.value = true;
     try {
@@ -145,11 +137,43 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Обновление имени
+  async function googleLogin(credential) {
+    loading.value = true;
+    try {
+      const response = await api.post("/auth/google", { credential });
+      const { accessToken, refreshToken, user: userData } = response.data;
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", refreshToken);
+      localStorage.setItem("user_id", userData.id);
+      user.value = userData;
+
+      await usersDB.put({
+        userId: String(userData.id),
+        email: userData.email,
+        displayName: userData.displayName,
+        avatar: userData.avatar,
+        originalAvatar: userData.originalAvatar,
+        dailyGoal: userData.dailyGoal,
+        updatedAt: new Date().toISOString(),
+      });
+
+      router.push("/library");
+    } catch (error) {
+      console.error("Google login error:", error);
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.title ||
+        error.message ||
+        "Ошибка входа через Google";
+      throw new Error(message);
+    } finally {
+      loading.value = false;
+    }
+  }
+
   async function updateProfile(updates) {
     try {
       const response = await api.put("/users/profile", updates);
-      // Обновляем локального пользователя
       if (user.value) {
         user.value = { ...user.value, ...updates };
       }
@@ -160,7 +184,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Обновление аватара
   async function updateAvatar(avatarBase64, originalBase64 = null) {
     try {
       const response = await api.put("/users/avatar", {
@@ -178,7 +201,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Установка дневной цели
   async function setDailyGoal(goal) {
     try {
       await api.put("/users/daily-goal", goal);
@@ -195,7 +217,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Смена пароля
   async function changePassword(currentPassword, newPassword) {
     try {
       await api.post("/auth/change-password", {
@@ -208,11 +229,9 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Удаление аккаунта
   async function deleteAccount() {
     try {
       await api.delete("/auth/account");
-      // Очищаем всё локальное
       await usersDB.clear();
       await offlineQueueDB.clear();
       localStorage.clear();
@@ -224,7 +243,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  // Выход
   function logout() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -240,6 +258,7 @@ export const useAuthStore = defineStore("auth", () => {
     fetchUser,
     login,
     register,
+    googleLogin,
     updateProfile,
     updateAvatar,
     setDailyGoal,
