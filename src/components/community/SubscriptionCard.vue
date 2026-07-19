@@ -90,7 +90,7 @@
 import { ref } from "vue";
 import { DEFAULT_AVATAR } from "../../constants/constants.js";
 import { DEFAULT_COVER } from "../../constants/constants.js";
-import ConfirmModal from "../../components/DeleteModal.vue";
+import ConfirmModal from "../DeleteModal.vue";
 
 const props = defineProps({
   subscription: Object,

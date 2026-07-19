@@ -14,14 +14,17 @@
           <div class="flex gap-1 text-black dark:text-white">
             <!-- Кнопка сортировки (dropdown) -->
             <div class="relative">
-              <IconButton
-                icon="🔽"
-                variant="primary"
-                @click="toggleSortMenu"
-                class="text-xl"
-              />
+              <span ref="sortButtonRef">
+                <IconButton
+                  icon="🔽"
+                  variant="primary"
+                  @click="toggleSortMenu"
+                  class="text-xl"
+                />
+              </span>
               <div
                 v-if="sortMenuOpen"
+                ref="sortMenuRef"
                 class="absolute right-0 mt-2 w-56 bg-white dark:bg-bg-secondary-dark rounded-lg shadow-lg border border-border dark:border-border-dark z-30"
               >
                 <div class="p-2">
@@ -92,14 +95,17 @@
 
             <!-- Кнопка фильтра (dropdown) -->
             <div class="relative">
-              <IconButton
-                :icon="filterIcon"
-                variant="primary"
-                @click="toggleFilterMenu"
-                class="text-xl"
-              />
+              <span ref="filterButtonRef">
+                <IconButton
+                  :icon="filterIcon"
+                  variant="primary"
+                  @click="toggleFilterMenu"
+                  class="text-xl"
+                />
+              </span>
               <div
                 v-if="filterMenuOpen"
+                ref="filterMenuRef"
                 class="absolute right-0 mt-2 w-48 bg-white dark:bg-bg-secondary-dark rounded-lg shadow-lg border border-border dark:border-border-dark z-30"
               >
                 <div class="p-2">
@@ -243,7 +249,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
-import { useDebounceFn } from "@vueuse/core";
+import { useDebounceFn, onClickOutside } from "@vueuse/core";
 import { useLibraryStore } from "../stores/library";
 import { useDisplaySettingsStore } from "../stores/displaySettings";
 import SkeletonLoader from "vue3-skeleton-loader";
@@ -266,6 +272,11 @@ const sortMenuOpen = ref(false);
 const filterMenuOpen = ref(false);
 const currentSort = ref(null); // 'title_asc', 'title_desc', 'author_asc', 'author_desc', null
 const currentFilter = ref("all"); // 'all', 'favorite', 'finished', 'unfinished', 'abandoned'
+
+const sortMenuRef = ref(null);
+const sortButtonRef = ref(null);
+const filterMenuRef = ref(null);
+const filterButtonRef = ref(null);
 
 // Поиск
 const searchQuery = ref("");
@@ -299,6 +310,24 @@ const filterIcon = computed(() => {
 onMounted(() => {
   libraryStore.loadBooks();
 });
+
+// Закрытие меню сортировки по клику вне
+onClickOutside(
+  sortMenuRef,
+  () => {
+    if (sortMenuOpen.value) sortMenuOpen.value = false;
+  },
+  { ignore: [sortButtonRef] },
+);
+
+// Закрытие меню фильтра по клику вне
+onClickOutside(
+  filterMenuRef,
+  () => {
+    if (filterMenuOpen.value) filterMenuOpen.value = false;
+  },
+  { ignore: [filterButtonRef] },
+);
 
 // Методы управления модалкой
 const openModal = () => {

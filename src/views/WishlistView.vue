@@ -12,14 +12,17 @@
           <div class="flex gap-1">
             <!-- Сортировка -->
             <div class="relative">
-              <IconButton
-                icon="🔽"
-                variant="primary"
-                @click="toggleSortMenu"
-                class="text-xl"
-              />
+              <span ref="sortButtonRef">
+                <IconButton
+                  icon="🔽"
+                  variant="primary"
+                  @click="toggleSortMenu"
+                  class="text-xl"
+                />
+              </span>
               <div
                 v-if="sortMenuOpen"
+                ref="sortMenuRef"
                 class="absolute right-0 mt-2 w-56 bg-white dark:bg-bg-secondary-dark rounded-lg shadow-lg border border-border dark:border-border-dark z-30"
               >
                 <div class="p-2">
@@ -132,7 +135,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
-import { useDebounceFn } from "@vueuse/core";
+import { useDebounceFn, onClickOutside } from "@vueuse/core";
 import { storeToRefs } from "pinia";
 import { useWishlistStore } from "../stores/wishlist";
 import { useDisplaySettingsStore } from "../stores/displaySettings";
@@ -166,6 +169,9 @@ const editingBook = ref(null);
 const isDeleteModalOpen = ref(false);
 const deletingBookId = ref(null);
 
+const sortMenuRef = ref(null);
+const sortButtonRef = ref(null);
+
 // Категории сортировки
 const sortCategories = [
   {
@@ -193,6 +199,15 @@ const sortCategories = [
     ],
   },
 ];
+
+// Закрытие меню сортировки по клику вне (игнорируем кнопку и само меню)
+onClickOutside(
+  sortMenuRef,
+  () => {
+    if (sortMenuOpen.value) sortMenuOpen.value = false;
+  },
+  { ignore: [sortButtonRef] },
+);
 
 // Поиск с debounce
 const updateDebouncedSearch = useDebounceFn((value) => {

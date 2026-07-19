@@ -146,11 +146,23 @@ const defaultAvatar = DEFAULT_AVATAR;
 watch(
   () => props.modelValue,
   (open) => {
-    if (open && props.initialToken) {
-      searchText.value = props.initialToken;
-      nextTick(() => {
-        onSearchInput({ target: { value: props.initialToken } });
-      });
+    if (open) {
+      // Сбрасываем все состояния при открытии
+      searchText.value = "";
+      searchResults.value = [];
+      addError.value = "";
+      linkInfo.value = null;
+      subscribeLibrary.value = false;
+      subscribeWishlist.value = false;
+      searching.value = false;
+
+      // Если есть начальный токен — заполняем и запускаем поиск
+      if (props.initialToken) {
+        searchText.value = props.initialToken;
+        nextTick(() => {
+          onSearchInput({ target: { value: props.initialToken } });
+        });
+      }
     }
   },
   { immediate: true },

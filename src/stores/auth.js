@@ -179,8 +179,22 @@ export const useAuthStore = defineStore("auth", () => {
       }
       return response.data;
     } catch (error) {
-      console.error("Update profile error", error);
-      throw error;
+      let message = "Ошибка обновления профиля";
+
+      if (error.response?.data) {
+        // Проверяем поле Message (с большой буквы от C#)
+        message =
+          error.response.data.Message ||
+          error.response.data.message ||
+          error.response.data ||
+          message;
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      throw new Error(
+        typeof message === "string" ? message : JSON.stringify(message),
+      );
     }
   }
 
